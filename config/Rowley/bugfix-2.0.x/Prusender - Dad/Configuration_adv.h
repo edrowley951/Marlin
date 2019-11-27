@@ -306,7 +306,7 @@
  * Define one or both of these to override the default 0-255 range.
  */
 //#define FAN_MIN_PWM 50
-#define FAN_MAX_PWM 128
+//#define FAN_MAX_PWM 128
 
 /**
  * FAST PWM FAN Settings
@@ -1885,7 +1885,7 @@
 
   #if AXIS_IS_TMC(E0)
     #define E0_CURRENT      538
-    #define E0_MICROSTEPS    32
+    #define E0_MICROSTEPS    16
     #define E0_RSENSE         0.11
     #define E0_CHAIN_POS     -1
   #endif

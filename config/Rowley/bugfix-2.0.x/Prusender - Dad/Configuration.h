@@ -71,7 +71,7 @@
 // @section info
 
 // Author info of this build printed to the host during boot and M115
-#define STRING_CONFIG_H_AUTHOR "(Erin Rowley, PrusEnder-3)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "(Erin Rowley, PrusEnder - Dad)" // Who made the changes.
 
 /**
  * *** VENDORS PLEASE READ ***
@@ -476,9 +476,9 @@
 //  #define DEFAULT_Ki 1.54
 //  #define DEFAULT_Kd 76.55
 
-#define DEFAULT_Kp 12.64
-#define DEFAULT_Ki 0.79
-#define DEFAULT_Kd 50.31
+#define DEFAULT_Kp 11.87
+#define DEFAULT_Ki 0.73
+#define DEFAULT_Kd 48.49
 
   // Ultimaker
   //#define DEFAULT_Kp 22.2
@@ -723,7 +723,7 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2...]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { 100, 80, 400, 280 }
+#define DEFAULT_AXIS_STEPS_PER_UNIT   { 100, 80, 400, 426.5 }
 
 /**
  * Default Max Feed Rate (mm/s)
@@ -927,13 +927,13 @@
  *
  * Specify a Probe position as { X, Y, Z }
  */
-#define NOZZLE_TO_PROBE_OFFSET { 26, 4, 0 }
+#define NOZZLE_TO_PROBE_OFFSET { 30, 0, 0 }
 
 // Certain types of probes need to stay away from edges
-#define MIN_PROBE_EDGE 10
+#define MIN_PROBE_EDGE 20
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 8000
+#define XY_PROBE_SPEED 10000
 
 // Feedrate (mm/m) for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
