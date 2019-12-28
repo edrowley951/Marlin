@@ -214,7 +214,7 @@
   #define AUTOTEMP_OLDWEIGHT 0.98
 #endif
 
-// Show extra position information in M114
+// Show extra position information with 'M114 D'
 //#define M114_DETAIL
 
 // Show Temperature ADC value
@@ -289,6 +289,9 @@
 // given number of milliseconds.  This gets the fan spinning reliably
 // before setting a PWM value. (Does not work with software PWM for fan on Sanguinololu)
 //#define FAN_KICKSTART_TIME 100
+
+// Some coolers may require a non-zero "off" state.
+//#define FAN_OFF_PWM  1
 
 /**
  * PWM Fan Scaling
@@ -379,6 +382,7 @@
   #define INVERT_CASE_LIGHT false             // Set true if Case Light is ON when pin is LOW
   #define CASE_LIGHT_DEFAULT_ON true          // Set default power-up state on
   #define CASE_LIGHT_DEFAULT_BRIGHTNESS 105   // Set default power-up brightness (0-255, requires PWM pin)
+  //#define CASE_LIGHT_MAX_PWM 128            // Limit pwm
   //#define CASE_LIGHT_MENU                   // Add Case Light options to the LCD menu
   //#define CASE_LIGHT_NO_BRIGHTNESS          // Disable brightness control. Enable for non-PWM lighting.
   //#define CASE_LIGHT_USE_NEOPIXEL           // Use Neopixel LED as case light, requires NEOPIXEL_LED.
@@ -519,7 +523,7 @@
 #define Y_HOME_BUMP_MM 5
 #define Z_HOME_BUMP_MM 2
 #define HOMING_BUMP_DIVISOR { 2, 2, 4 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-//#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
+#define QUICK_HOME                       // If homing includes X and Y, do a diagonal move initially
 //#define HOMING_BACKOFF_MM { 2, 2, 2 }  // (mm) Move away from the endstops after homing
 
 // When G28 is called, this option will make Y home before X
@@ -602,20 +606,32 @@
 //#define Z_STEPPER_AUTO_ALIGN
 #if ENABLED(Z_STEPPER_AUTO_ALIGN)
   // Define probe X and Y positions for Z1, Z2 [, Z3]
-  #define Z_STEPPER_ALIGN_X { 10, 150, 290 }
-  #define Z_STEPPER_ALIGN_Y { 290, 10, 290 }
+  #define Z_STEPPER_ALIGN_XY { {  10, 290 }, { 150,  10 }, { 290, 290 } }
+
+  // Provide Z stepper positions for more rapid convergence in bed alignment.
+  // Currently requires triple stepper drivers.
+  //#define Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS
+  #if ENABLED(Z_STEPPER_ALIGN_KNOWN_STEPPER_POSITIONS)
+    // Define Stepper XY positions for Z1, Z2, Z3 corresponding to
+    // the Z screw positions in the bed carriage.
+    // Define one position per Z stepper in stepper driver order.
+    #define Z_STEPPER_ALIGN_STEPPER_XY { { 210.7, 102.5 }, { 152.6, 220.0 }, { 94.5, 102.5 } }
+  #else
+    // Amplification factor. Used to scale the correction step up or down.
+    // In case the stepper (spindle) position is further out than the test point.
+    // Use a value > 1. NOTE: This may cause instability
+    #define Z_STEPPER_ALIGN_AMP 1.0
+  #endif
+
   // Set number of iterations to align
   #define Z_STEPPER_ALIGN_ITERATIONS 3
+
   // Enable to restore leveling setup after operation
   #define RESTORE_LEVELING_AFTER_G34
 
   // On a 300mm bed a 5% grade would give a misalignment of ~1.5cm
   #define G34_MAX_GRADE  5  // (%) Maximum incline G34 will handle
 
-  // Use the amplification factor to de-/increase correction step.
-  // In case the stepper (spindle) position is further out than the test point
-  // Use a value > 1. NOTE: This may cause instability
-  #define Z_STEPPER_ALIGN_AMP 1.0
   // Stop criterion. If the accuracy is better than this stop iterating early
   #define Z_STEPPER_ALIGN_ACC 0.02
 #endif
@@ -726,8 +742,8 @@
   //#define CALIBRATION_REPORTING
 
   // The true location and dimension the cube/bolt/washer on the bed.
-  #define CALIBRATION_OBJECT_CENTER     { 264.0, -22.0,  -2.0} // mm
-  #define CALIBRATION_OBJECT_DIMENSIONS {  10.0,  10.0,  10.0} // mm
+  #define CALIBRATION_OBJECT_CENTER     { 264.0, -22.0,  -2.0 } // mm
+  #define CALIBRATION_OBJECT_DIMENSIONS {  10.0,  10.0,  10.0 } // mm
 
   // Comment out any sides which are unreachable by the probe. For best
   // auto-calibration results, all sides must be reachable.
@@ -825,7 +841,7 @@
 // @section lcd
 
 #if EITHER(ULTIPANEL, EXTENSIBLE_UI)
-  #define MANUAL_FEEDRATE { 50*60, 50*60, 4*60, 60 } // Feedrates for manual moves along X, Y, Z, E from panel
+  #define MANUAL_FEEDRATE { 50*60, 50*60, 4*60, 2*60 } // Feedrates for manual moves along X, Y, Z, E from panel
   #define SHORT_MANUAL_Z_MOVE 0.025 // (mm) Smallest manual Z move (< 0.1mm)
   #if ENABLED(ULTIPANEL)
     #define MANUAL_E_MOVES_RELATIVE // Display extruder move distance rather than "position"
@@ -850,7 +866,7 @@
 #if HAS_LCD_MENU
 
   // Include a page of printer information in the LCD Main Menu
-  //#define LCD_INFO_MENU
+  #define LCD_INFO_MENU
   #if ENABLED(LCD_INFO_MENU)
     //#define LCD_PRINTER_INFO_IS_BOOTSCREEN // Show bootscreen(s) instead of Printer Info pages
   #endif
@@ -878,7 +894,7 @@
 #endif // HAS_LCD_MENU
 
 // Scroll a longer status message into view
-//#define STATUS_MESSAGE_SCROLLING
+#define STATUS_MESSAGE_SCROLLING
 
 // On the Info Screen, display XY with one decimal place when possible
 //#define LCD_DECIMAL_SMALL_XY
@@ -888,6 +904,18 @@
 
 // Add an 'M73' G-code to set the current percentage
 //#define LCD_SET_PROGRESS_MANUALLY
+
+// Show the E position (filament used) during printing
+//#define LCD_SHOW_E_TOTAL
+
+#if HAS_GRAPHICAL_LCD && HAS_PRINT_PROGRESS
+  //#define PRINT_PROGRESS_SHOW_DECIMALS // Show progress with decimal digits
+  //#define SHOW_REMAINING_TIME          // Display estimated time to completion
+  #if ENABLED(SHOW_REMAINING_TIME)
+    //#define USE_M73_REMAINING_TIME     // Use remaining time from M73 command instead of estimation
+    //#define ROTATE_PROGRESS_DISPLAY    // Display (P)rogress, (E)lapsed, and (R)emaining time
+  #endif
+#endif
 
 #if HAS_CHARACTER_LCD && HAS_PRINT_PROGRESS
   //#define LCD_PROGRESS_BAR              // Show a progress bar on HD44780 LCDs for SD printing
@@ -985,7 +1013,7 @@
   //#define LONG_FILENAME_HOST_SUPPORT
 
   // Enable this option to scroll long filenames in the SD card menu
-  //#define SCROLL_LONG_FILENAMES
+  #define SCROLL_LONG_FILENAMES
 
   // Leave the heaters on after Stop Print (not recommended!)
   //#define SD_ABORT_NO_COOLDOWN
@@ -1153,7 +1181,7 @@
   //#define STATUS_FAN_FRAMES 3       // :[0,1,2,3,4] Number of fan animation frames
   //#define STATUS_HEAT_PERCENT       // Show heating in a progress bar
   //#define BOOT_MARLIN_LOGO_SMALL    // Show a smaller Marlin logo on the Boot Screen (saving 399 bytes of flash)
-  //#define BOOT_MARLIN_LOGO_ANIMATED // Animated Marlin logo. Costs ~‭3260 (or ~940) bytes of PROGMEM.
+   #define BOOT_MARLIN_LOGO_ANIMATED // Animated Marlin logo. Costs ~‭3260 (or ~940) bytes of PROGMEM.
 
   // Frivolous Game Options
   //#define MARLIN_BRICKOUT
@@ -1205,9 +1233,48 @@
   //#define TOUCH_UI_PORTRAIT
   //#define TOUCH_UI_MIRRORED
 
+  // UTF8 processing and rendering.
+  // Unsupported characters are shown as '?'.
+  //#define TOUCH_UI_USE_UTF8
+  #if ENABLED(TOUCH_UI_USE_UTF8)
+    // Western accents support. These accented characters use
+    // combined bitmaps and require relatively little storage.
+    #define TOUCH_UI_UTF8_WESTERN_CHARSET
+    #if ENABLED(TOUCH_UI_UTF8_WESTERN_CHARSET)
+      // Additional character groups. These characters require
+      // full bitmaps and take up considerable storage:
+      //#define TOUCH_UI_UTF8_SUPERSCRIPTS  // ¹ ² ³
+      //#define TOUCH_UI_UTF8_COPYRIGHT     // © ®
+      //#define TOUCH_UI_UTF8_GERMANIC      // ß
+      //#define TOUCH_UI_UTF8_SCANDINAVIAN  // Æ Ð Ø Þ æ ð ø þ
+      //#define TOUCH_UI_UTF8_PUNCTUATION   // « » ¿ ¡
+      //#define TOUCH_UI_UTF8_CURRENCY      // ¢ £ ¤ ¥
+      //#define TOUCH_UI_UTF8_ORDINALS      // º ª
+      //#define TOUCH_UI_UTF8_MATHEMATICS   // ± × ÷
+      //#define TOUCH_UI_UTF8_FRACTIONS     // ¼ ½ ¾
+      //#define TOUCH_UI_UTF8_SYMBOLS       // µ ¶ ¦ § ¬
+    #endif
+  #endif
+
+  // Use a smaller font when labels don't fit buttons
+  #define TOUCH_UI_FIT_TEXT
+
+  // Allow language selection from menu at run-time (otherwise use LCD_LANGUAGE)
+  //#define LCD_LANGUAGE_1 en
+  //#define LCD_LANGUAGE_2 fr
+  //#define LCD_LANGUAGE_3 de
+  //#define LCD_LANGUAGE_4 es
+  //#define LCD_LANGUAGE_5 it
+
   // Use a numeric passcode for "Screen lock" keypad.
   // (recommended for smaller displays)
   //#define TOUCH_UI_PASSCODE
+
+  // Output extra debug info for Touch UI events
+  //#define TOUCH_UI_DEBUG
+
+  // Developer menu (accessed by touching "About Printer" copyright text)
+  //#define TOUCH_UI_DEVELOPER_MENU
 #endif
 
 //
@@ -1247,14 +1314,15 @@
  *
  * Warning: Does not respect endstops!
  */
-//#define BABYSTEPPING
+#define BABYSTEPPING
 #if ENABLED(BABYSTEPPING)
   //#define BABYSTEP_WITHOUT_HOMING
   //#define BABYSTEP_XY                     // Also enable X/Y Babystepping. Not supported on DELTA!
   #define BABYSTEP_INVERT_Z false           // Change if Z babysteps should go the other way
-  #define BABYSTEP_MULTIPLICATOR  1         // Babysteps are very small. Increase for faster motion.
+  #define BABYSTEP_MULTIPLICATOR_Z  1       // Babysteps are very small. Increase for faster motion.
+  #define BABYSTEP_MULTIPLICATOR_XY 1
 
-  //#define DOUBLECLICK_FOR_Z_BABYSTEPPING  // Double-click on the Status Screen for Z Babystepping.
+  #define DOUBLECLICK_FOR_Z_BABYSTEPPING    // Double-click on the Status Screen for Z Babystepping.
   #if ENABLED(DOUBLECLICK_FOR_Z_BABYSTEPPING)
     #define DOUBLECLICK_MAX_INTERVAL 1250   // Maximum interval between clicks, in milliseconds.
                                             // Note: Extra time may be added to mitigate controller latency.
@@ -1267,7 +1335,7 @@
 
   //#define BABYSTEP_DISPLAY_TOTAL          // Display total babysteps since last G28
 
-  //#define BABYSTEP_ZPROBE_OFFSET          // Combine M851 Z and Babystepping
+  #define BABYSTEP_ZPROBE_OFFSET          // Combine M851 Z and Babystepping
   #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
     //#define BABYSTEP_HOTEND_Z_OFFSET      // For multiple hotends, babystep relative Z offsets
     //#define BABYSTEP_ZPROBE_GFX_OVERLAY   // Enable graphical overlay on Z-offset editor
@@ -1300,6 +1368,42 @@
 #endif
 
 // @section leveling
+
+/**
+ * Points to probe for all 3-point Leveling procedures.
+ * Override if the automatically selected points are inadequate.
+ */
+#if EITHER(AUTO_BED_LEVELING_3POINT, AUTO_BED_LEVELING_UBL)
+  //#define PROBE_PT_1_X 15
+  //#define PROBE_PT_1_Y 180
+  //#define PROBE_PT_2_X 15
+  //#define PROBE_PT_2_Y 20
+  //#define PROBE_PT_3_X 170
+  //#define PROBE_PT_3_Y 20
+#endif
+
+/**
+ * Override MIN_PROBE_EDGE for each side of the build plate
+ * Useful to get probe points to exact positions on targets or
+ * to allow leveling to avoid plate clamps on only specific
+ * sides of the bed.
+ *
+ * If you are replacing the prior *_PROBE_BED_POSITION options,
+ * LEFT and FRONT values in most cases will map directly over
+ * RIGHT and REAR would be the inverse such as
+ * (X/Y_BED_SIZE - RIGHT/BACK_PROBE_BED_POSITION)
+ *
+ * This will allow all positions to match at compilation, however
+ * should the probe position be modified with M851XY then the
+ * probe points will follow. This prevents any change from causing
+ * the probe to be unable to reach any points.
+ */
+#if PROBE_SELECTED && !IS_KINEMATIC
+  //#define MIN_PROBE_EDGE_LEFT MIN_PROBE_EDGE
+  //#define MIN_PROBE_EDGE_RIGHT MIN_PROBE_EDGE
+  //#define MIN_PROBE_EDGE_FRONT MIN_PROBE_EDGE
+  //#define MIN_PROBE_EDGE_BACK MIN_PROBE_EDGE
+#endif
 
 #if EITHER(MESH_BED_LEVELING, AUTO_BED_LEVELING_UBL)
   // Override the mesh area if the automatic (max) area is too large
@@ -1361,7 +1465,7 @@
 #define MIN_STEPS_PER_SEGMENT 6
 
 /**
- * Minimum delay after setting the stepper DIR (in ns)
+ * Minimum delay before and after setting the stepper DIR (in ns)
  *     0 : No delay (Expect at least 10µS since one Stepper ISR must transpire)
  *    20 : Minimum for TMC2xxx drivers
  *   200 : Minimum for A4988 drivers
@@ -1373,7 +1477,8 @@
  *
  * Override the default value based on the driver type set in Configuration.h.
  */
-//#define MINIMUM_STEPPER_DIR_DELAY 650
+//#define MINIMUM_STEPPER_POST_DIR_DELAY 650
+//#define MINIMUM_STEPPER_PRE_DIR_DELAY 650
 
 /**
  * Minimum stepper driver pulse width (in µs)
@@ -1565,7 +1670,7 @@
  * Requires NOZZLE_PARK_FEATURE.
  * This feature is required for the default FILAMENT_RUNOUT_SCRIPT.
  */
-//#define ADVANCED_PAUSE_FEATURE
+#define ADVANCED_PAUSE_FEATURE
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
   #define PAUSE_PARK_RETRACT_FEEDRATE         60  // (mm/s) Initial retract feedrate.
   #define PAUSE_PARK_RETRACT_LENGTH            2  // (mm) Initial retract.
@@ -1898,7 +2003,7 @@
    * Define you own with
    * { <off_time[1..15]>, <hysteresis_end[-3..12]>, hysteresis_start[1..8] }
    */
-  #define CHOPPER_TIMING CHOPPER_DEFAULT_12V
+  #define CHOPPER_TIMING CHOPPER_DEFAULT_24V
 
   /**
    * Monitor Trinamic drivers for error conditions,
@@ -1964,6 +2069,8 @@
    *
    * IMPROVE_HOMING_RELIABILITY tunes acceleration and jerk when
    * homing and adds a guard period for endstop triggering.
+   *
+   * TMC2209 requires STEALTHCHOP enabled for SENSORLESS_HOMING
    */
   #define SENSORLESS_HOMING // StallGuard capable drivers only
 
@@ -1982,6 +2089,7 @@
     #define Y_STALL_SENSITIVITY  2
     //#define Z_STALL_SENSITIVITY  8
     //#define SPI_ENDSTOPS              // TMC2130 only
+    //#define HOME_USING_SPREADCYCLE
     //#define IMPROVE_HOMING_RELIABILITY
   #endif
 
@@ -2004,8 +2112,8 @@
    *
    * Example:
    * #define TMC_ADV() { \
-   *   stepperX.diag0_temp_prewarn(1); \
-   *   stepperY.interpolate(0); \
+   *   stepperX.diag0_otpw(1); \
+   *   stepperY.intpol(0); \
    * }
    */
   #define TMC_ADV() {  }
@@ -2036,7 +2144,7 @@
     #define X_OVERCURRENT   2000  // (mA) Current where the driver detects an over current (VALID: 375 x (1 - 16) - 6A max - rounds down)
     #define X_STALLCURRENT  1500  // (mA) Current where the driver detects a stall (VALID: 31.25 * (1-128) -  4A max - rounds down)
     #define X_MAX_VOLTAGE    127  // 0-255, Maximum effective voltage seen by stepper
-    #define X_CHAIN_POS        0  // Position in SPI chain, 0=Not in chain, 1=Nearest MOSI
+    #define X_CHAIN_POS       -1  // Position in SPI chain. (<=0 : Not in chain. 1 : Nearest MOSI)
   #endif
 
   #if AXIS_DRIVER_TYPE_X2(L6470)
@@ -2044,7 +2152,7 @@
     #define X2_OVERCURRENT    2000
     #define X2_STALLCURRENT   1500
     #define X2_MAX_VOLTAGE     127
-    #define X2_CHAIN_POS         0
+    #define X2_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_Y(L6470)
@@ -2052,7 +2160,7 @@
     #define Y_OVERCURRENT     2000
     #define Y_STALLCURRENT    1500
     #define Y_MAX_VOLTAGE      127
-    #define Y_CHAIN_POS          0
+    #define Y_CHAIN_POS         -1
   #endif
 
   #if AXIS_DRIVER_TYPE_Y2(L6470)
@@ -2060,7 +2168,7 @@
     #define Y2_OVERCURRENT    2000
     #define Y2_STALLCURRENT   1500
     #define Y2_MAX_VOLTAGE     127
-    #define Y2_CHAIN_POS         0
+    #define Y2_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_Z(L6470)
@@ -2068,7 +2176,7 @@
     #define Z_OVERCURRENT     2000
     #define Z_STALLCURRENT    1500
     #define Z_MAX_VOLTAGE      127
-    #define Z_CHAIN_POS          0
+    #define Z_CHAIN_POS         -1
   #endif
 
   #if AXIS_DRIVER_TYPE_Z2(L6470)
@@ -2076,7 +2184,7 @@
     #define Z2_OVERCURRENT    2000
     #define Z2_STALLCURRENT   1500
     #define Z2_MAX_VOLTAGE     127
-    #define Z2_CHAIN_POS         0
+    #define Z2_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_Z3(L6470)
@@ -2084,7 +2192,7 @@
     #define Z3_OVERCURRENT    2000
     #define Z3_STALLCURRENT   1500
     #define Z3_MAX_VOLTAGE     127
-    #define Z3_CHAIN_POS         0
+    #define Z3_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E0(L6470)
@@ -2092,7 +2200,7 @@
     #define E0_OVERCURRENT    2000
     #define E0_STALLCURRENT   1500
     #define E0_MAX_VOLTAGE     127
-    #define E0_CHAIN_POS         0
+    #define E0_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E1(L6470)
@@ -2100,7 +2208,7 @@
     #define E1_OVERCURRENT    2000
     #define E1_STALLCURRENT   1500
     #define E1_MAX_VOLTAGE     127
-    #define E1_CHAIN_POS         0
+    #define E1_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E2(L6470)
@@ -2108,7 +2216,7 @@
     #define E2_OVERCURRENT    2000
     #define E2_STALLCURRENT   1500
     #define E2_MAX_VOLTAGE     127
-    #define E2_CHAIN_POS         0
+    #define E2_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E3(L6470)
@@ -2116,7 +2224,7 @@
     #define E3_OVERCURRENT    2000
     #define E3_STALLCURRENT   1500
     #define E3_MAX_VOLTAGE     127
-    #define E3_CHAIN_POS         0
+    #define E3_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E4(L6470)
@@ -2124,7 +2232,7 @@
     #define E4_OVERCURRENT    2000
     #define E4_STALLCURRENT   1500
     #define E4_MAX_VOLTAGE     127
-    #define E4_CHAIN_POS         0
+    #define E4_CHAIN_POS        -1
   #endif
 
   #if AXIS_DRIVER_TYPE_E5(L6470)
@@ -2132,7 +2240,7 @@
     #define E5_OVERCURRENT    2000
     #define E5_STALLCURRENT   1500
     #define E5_MAX_VOLTAGE     127
-    #define E5_CHAIN_POS         0
+    #define E5_CHAIN_POS        -1
   #endif
 
   /**
@@ -2461,6 +2569,13 @@
 #if ENABLED(HOST_ACTION_COMMANDS)
   //#define HOST_PROMPT_SUPPORT
 #endif
+
+/**
+ * Cancel Objects
+ *
+ * Implement M486 to allow Marlin to skip objects
+ */
+//#define CANCEL_OBJECTS
 
 /**
  * I2C position encoders for closed loop control.
